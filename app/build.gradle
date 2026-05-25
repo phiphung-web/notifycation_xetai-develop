@@ -16,6 +16,7 @@ android {
         targetSdk 34
         versionCode 40
         versionName "2.0"
+        manifestPlaceholders = [appLabel: "@string/app_name"]
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -36,6 +37,13 @@ android {
 //            buildConfigField "String", "BASE_URL", '"http://dev.report.xevipnoibai.2nf.vn"'
             buildConfigField "String", "BASE_URL", '"https://crm.mvpai.site/"'
 
+        }
+        parallel {
+            initWith debug
+            applicationIdSuffix ".parallel"
+            versionNameSuffix "-parallel"
+            matchingFallbacks = ['debug']
+            manifestPlaceholders = [appLabel: "NotiBank 2.0 Parallel"]
         }
     }
     compileOptions {

@@ -52,6 +52,12 @@ object Utils {
         var typeBank = -1
         try {
             val monthReceiver = getDateTime(time_created)
+            if (message.contains("ma OTP", ignoreCase = true)) {
+                var otpCode = ""
+                val partner = ViewState.BankValue.MB_ONLINE_OTP
+                val price = "0"
+                typeBank = ViewState.TypeBank.MB_ONLINE_OTP
+                try {
                 val otpRegex = """ma OTP la\s+(\d+)""".toRegex(RegexOption.IGNORE_CASE)
                         val otpMatch = otpRegex.find(message)
                         if (otpMatch != null) {
@@ -104,8 +110,7 @@ object Utils {
                         )
                     }
                 }
-            }
-
+            
         } catch (ex: java.lang.Exception) {
 
             Timber.w("forwarding received message error $ex")
