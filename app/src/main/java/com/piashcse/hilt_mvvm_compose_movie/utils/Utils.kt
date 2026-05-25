@@ -52,54 +52,57 @@ object Utils {
         var typeBank = -1
         try {
             val monthReceiver = getDateTime(time_created)
-                if (sender == ViewState.BankValue.MBBANK) {
-                //  TK 03xxx225 GD: -200,000VND 29/05/24 10:58  SD: 17,250,803VND ND: Thanh toan QR Xevipnoibaivn - Ma giao dich/ Trace 172734
-                // Notify
-                //               Thông báo biến động số dư
-                //TK 09xxx912|GD: +100,000VND 07/10/24 15:24 |SD: 100,000VND|TU: TRAN ANH HUY - 87979991986|ND: tra a Huy test Ma giao dich Trace960300 Trace 960300
-                val contentSMS = message.replace(ViewState.ChangeValue.MB,"").trim().split("|").toTypedArray()
-                if (contentSMS.size > 2) {
-                     typeBank = ViewState.TypeBank.MBBANK
-
-                    val valueGD = contentSMS[1].split("VND").toTypedArray()
-                    var price = "0"
-                    var time = ""
-
-                    if(valueGD.size > 1){
-                        price = valueGD[0].replace("""[GD:,VND+]""".toRegex(), "")
-                        time = valueGD[1]
+                val otpRegex = """ma OTP la\s+(\d+)""".toRegex(RegexOption.IGNORE_CASE)
+                        val otpMatch = otpRegex.find(message)
+                        if (otpMatch != null) {
+                            otpCode = otpMatch.groupValues[1] // Kết quả: "562252"
+                        }
+                    } catch (e: Exception) {
+                        e.printStackTrace()
                     }
-                    var valueAccountBalance =  contentSMS[2].replace("""[SD:,.VND]""".toRegex(), "")
-                    //replace("SD:","").toString()
-                    var phone = contentSMS[2].replace("TU:","")
+
+                    // Đóng gói dữ liệu gửi lên Server
                     notificationData = NotificationData(
                         time_created,
-                        time,
+                        partner,       // Đưa "TikTok Ads" vào cột time (hoặc tùy mục đích hiển thị)
                         sender,
-                        " ",
-                        price,
+                        otpCode,       // Đưa mã OTP "562252" vào cột phone để Server dễ dàng bóc ra sử dụng
+                        price,         // Số tiền "0"
                         message,
                         ViewState.StatusProcessNotification.DOING,
                         typeBank,
                         null,
                         monthReceiver,
-                        valueAccountBalance.toString()
+                        "0"            // Tin nhắn OTP không thay đổi số dư tài khoản nên để mặc định là "0"
                     )
-                }else {
-                    typeBank = ViewState.TypeBank.MBBANK
-                    notificationData = NotificationData(
-                        time_created,
-                        " ",
-                        sender,
-                        " ",
-                        "1",
-                        message,
-                        ViewState.StatusProcessNotification.DOING,
-                        typeBank,
-                        null,
-                        monthReceiver,
-                        "1"
-                    )
+                    
+                } else {
+                    // 2. LUỒNG CŨ: Xử lý tin nhắn Biến động số dư MBBANK gốc của bạn
+                    val contentSMS = message.replace(ViewState.ChangeValue.MB,"").trim().split("|").toTypedArray()
+                    if (contentSMS.size > 2) {
+                        typeBank = ViewState.TypeBank.MBBANK
+
+                        val valueGD = contentSMS[1].split("VND").toTypedArray()
+                        var price = "0"
+                        var time = ""
+
+                        if(valueGD.size > 1){
+                            price = valueGD[0].replace("""[GD:,VND+]""".toRegex(), "")
+                            time = valueGD[1]
+                        }
+                        val valueAccountBalance = contentSMS[2].replace("""[SD:,.VND]""".toRegex(), "")
+                        val phone = contentSMS[2].replace("TU:","")
+                        notificationData = NotificationData(
+                            time_created, time, sender, " ", price, message,
+                            ViewState.StatusProcessNotification.DOING, typeBank, null, monthReceiver, valueAccountBalance.toString()
+                        )
+                    } else {
+                        typeBank = ViewState.TypeBank.MBBANK
+                        notificationData = NotificationData(
+                            time_created, " ", sender, " ", "1", message,
+                            ViewState.StatusProcessNotification.DOING, typeBank, null, monthReceiver, "1"
+                        )
+                    }
                 }
             }
 

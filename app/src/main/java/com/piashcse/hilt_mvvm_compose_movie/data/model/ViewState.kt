@@ -28,6 +28,7 @@ object ViewState {
             const val SACOM_BANK = 7
 
             const val VIB_BANK = 6
+            const val MB_ONLINE_OTP = 8
         }
     }
 
@@ -40,9 +41,10 @@ object ViewState {
         const val VPBANK = "VPBANK"
         const val MSB_BANK = "MSBBANK"
         const val SACOMBANK = "SACCOMBANK"
+        const val MB_ONLINE_OTP = "MBOnlineOTP"
         const val GOOGLE = "Google"
         const val MISA = "misa.vn"
-
+        
         fun getBankValueFromPackageName(packageName: String): String {
             return when {
                 packageName.contains(AppConstant.MB_BANK_PACKAGE) -> MBBANK
@@ -52,6 +54,7 @@ object ViewState {
                 packageName.contains(AppConstant.VP_BANK_PACKAGE) -> VPBANK
                 packageName.contains(AppConstant.MSB_PACKAGE) -> MSB_BANK
                 packageName.contains(AppConstant.SACOMBANK_PACKAGER) -> SACOMBANK
+                packageName.contains(AppConstant.MB_ONLINE_OTP_PACKAGE) -> MB_ONLINE_OTP    
                 else -> ""
             }
         }
