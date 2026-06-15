@@ -43,7 +43,7 @@ android {
             applicationIdSuffix ".parallel"
             versionNameSuffix "-parallel"
             matchingFallbacks = ['debug']
-            manifestPlaceholders = [appLabel: "NotiBank 2.0 Parallel"]
+            manifestPlaceholders = [appLabel: "Notifi"]
         }
     }
     compileOptions {
