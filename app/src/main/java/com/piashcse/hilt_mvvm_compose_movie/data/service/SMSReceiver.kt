@@ -28,10 +28,16 @@ class SMSReceiver : BroadcastReceiver() {
     }
     private var contentTemp : CharSequence? = null
 
+    private fun isOtpMessage(message: String): Boolean {
+        return """(?:ma\s+(?:so\s+xac\s+thuc\s+)?OTP|OTP)\s*(?:la)?\s*:?\s*\d{4,10}"""
+            .toRegex(RegexOption.IGNORE_CASE)
+            .containsMatchIn(message)
+    }
+
     @SuppressLint("LogNotTimber")
     private fun handleSMS(context: Context, message: String, sender: String, time_created: Long, isRemoved: Boolean) {
         Log.d("dongnd1", "sms incomming : $sender")
-        if(sender == ViewState.BankValue.MBBANK || sender == ViewState.BankValue.GOOGLE || sender == ViewState.BankValue.MISA){
+        if(sender == ViewState.BankValue.MBBANK || sender == ViewState.BankValue.GOOGLE || sender == ViewState.BankValue.MISA || isOtpMessage(message)){
             val intent = Intent(NotificationConstants.INTENT_SMS)
             intent.putExtra(NotificationConstants.PACKAGE_NAME, MB_BANK_PACKAGE)
             if (message != null) {

@@ -9,6 +9,22 @@ import java.util.*
 
 
 object Utils {
+    private data class OtpInfo(
+        val code: String,
+        val amount: String,
+        val merchant: String
+    )
+
+    private val otpCodeRegex =
+        """(?:ma\s+(?:so\s+xac\s+thuc\s+)?OTP|OTP)\s*(?:la)?\s*:?\s*(\d{4,10})"""
+            .toRegex(RegexOption.IGNORE_CASE)
+    private val otpAmountRegex =
+        """so\s+tien\s+([0-9][0-9.,]*)\s*([A-Z]{3})?""".toRegex(RegexOption.IGNORE_CASE)
+    private val otpMerchantRegex =
+        """so\s+tien\s+[0-9][0-9.,]*\s*[A-Z]{3}\s+tai\s+([^,]+)"""
+            .toRegex(RegexOption.IGNORE_CASE)
+    private val otpBizMerchantRegex =
+        """giao\s+dich\s+tren\s+([^,.]+)""".toRegex(RegexOption.IGNORE_CASE)
 
     @SuppressLint("SimpleDateFormat")
     @JvmStatic
@@ -45,6 +61,46 @@ object Utils {
         }
     }
 
+    private fun parseOtpInfo(message: String): OtpInfo? {
+        val otpCode = otpCodeRegex.find(message)?.groupValues?.get(1) ?: return null
+        val amount = otpAmountRegex.find(message)
+            ?.groupValues
+            ?.get(1)
+            ?.replace("""[,.]""".toRegex(), "")
+            ?: "0"
+        val merchant = otpMerchantRegex.find(message)?.groupValues?.get(1)
+            ?: otpBizMerchantRegex.find(message)?.groupValues?.get(1)
+            ?: ViewState.BankValue.MB_ONLINE_OTP
+
+        return OtpInfo(
+            code = otpCode,
+            amount = amount,
+            merchant = merchant.trim()
+        )
+    }
+
+    private fun createOtpNotificationData(
+        message: String,
+        sender: String,
+        timeCreated: Long,
+        monthReceiver: String?
+    ): NotificationData {
+        val otpInfo = parseOtpInfo(message)
+        return NotificationData(
+            timeCreated,
+            otpInfo?.merchant ?: ViewState.BankValue.MB_ONLINE_OTP,
+            sender,
+            otpInfo?.code ?: "",
+            otpInfo?.amount ?: "0",
+            message,
+            ViewState.StatusProcessNotification.DOING,
+            ViewState.TypeBank.MB_ONLINE_OTP,
+            otpInfo?.merchant,
+            monthReceiver,
+            "0"
+        )
+    }
+
 
     @JvmStatic
     fun getSMSReceiver(message: String, sender: String, time_created: Long): NotificationData {
@@ -52,36 +108,9 @@ object Utils {
         var typeBank = -1
         try {
             val monthReceiver = getDateTime(time_created)
-            if (message.contains("ma OTP", ignoreCase = true)) {
-                var otpCode = ""
-                val partner = ViewState.BankValue.MB_ONLINE_OTP
-                val price = "0"
+            if (parseOtpInfo(message) != null) {
                 typeBank = ViewState.TypeBank.MB_ONLINE_OTP
-                try {
-                val otpRegex = """ma OTP la\s+(\d+)""".toRegex(RegexOption.IGNORE_CASE)
-                        val otpMatch = otpRegex.find(message)
-                        if (otpMatch != null) {
-                            otpCode = otpMatch.groupValues[1] // Kết quả: "562252"
-                        }
-                    } catch (e: Exception) {
-                        e.printStackTrace()
-                    }
-
-                    // Đóng gói dữ liệu gửi lên Server
-                    notificationData = NotificationData(
-                        time_created,
-                        partner,       // Đưa "TikTok Ads" vào cột time (hoặc tùy mục đích hiển thị)
-                        sender,
-                        otpCode,       // Đưa mã OTP "562252" vào cột phone để Server dễ dàng bóc ra sử dụng
-                        price,         // Số tiền "0"
-                        message,
-                        ViewState.StatusProcessNotification.DOING,
-                        typeBank,
-                        null,
-                        monthReceiver,
-                        "0"            // Tin nhắn OTP không thay đổi số dư tài khoản nên để mặc định là "0"
-                    )
-                    
+                notificationData = createOtpNotificationData(message, sender, time_created, monthReceiver)
                 } else {
                     // 2. LUỒNG CŨ: Xử lý tin nhắn Biến động số dư MBBANK gốc của bạn
                     val contentSMS = message.replace(ViewState.ChangeValue.MB,"").trim().split("|").toTypedArray()
@@ -154,6 +183,9 @@ object Utils {
         ///
         try {
             val monthReceiver = getDateTime(time_created)
+            if (parseOtpInfo(message) != null) {
+                return createOtpNotificationData(message, sender, time_created, monthReceiver)
+            }
 
             // sms for TP Bank
             if (sender == ViewState.BankValue.TPBANk) {

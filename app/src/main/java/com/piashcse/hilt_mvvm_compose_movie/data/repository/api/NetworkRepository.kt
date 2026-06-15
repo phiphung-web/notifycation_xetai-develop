@@ -32,7 +32,7 @@ class NetworkRepository @Inject constructor(
             try {
                 val response = apiService.postRecharge(
                     idPay = notificationData.timeCreated,
-                    phone = "",
+                    phone = notificationData.phone,
                     money = notificationData.price,
                     typeBank = notificationData.typeBank,
                     msg = notificationData.message,
